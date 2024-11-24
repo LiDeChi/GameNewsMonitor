@@ -1,0 +1,3 @@
+@echo off
+echo Connecting to GameNewsMonitor server...
+ssh root@8.134.13.73

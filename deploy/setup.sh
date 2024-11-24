@@ -5,34 +5,34 @@ sudo apt update
 sudo apt upgrade -y
 
 # 安装Python和必要的工具
-sudo apt install -y python3-full python3-pip python3-venv git
+sudo apt install -y python3.12-full python3.12-venv python3-pip python3.12-distutils python3.12-dev build-essential
 
-# 创建项目目录
-mkdir -p ~/GameNewsMonitor
+# 确保在正确的目录
 cd ~/GameNewsMonitor
 
-# 克隆项目代码（如果还没有的话）
-if [ ! -d ".git" ]; then
-    git clone https://github.com/LiDeChi/GameNewsMonitor.git .
-fi
+# 删除旧的虚拟环境（如果存在）
+rm -rf venv
 
-# 创建并激活虚拟环境
-python3 -m venv venv
-source venv/bin/activate
+# 创建新的虚拟环境
+python3.12 -m venv venv
 
-# 安装pip最新版本
-python3 -m pip install --upgrade pip
+# 激活虚拟环境
+. venv/bin/activate
+
+# 安装pip最新版本和构建工具
+python3 -m pip install --upgrade pip setuptools wheel
 
 # 安装项目依赖
 pip install -r requirements.txt --break-system-packages
 
 # 安装playwright
-python3 -m playwright install --with-deps
+pip install playwright --break-system-packages
+python3 -m playwright install --with-deps chromium
 
 # 创建日志目录
 mkdir -p logs
 
 # 设置crontab（每天早上8点运行）
-(crontab -l 2>/dev/null; echo "0 8 * * * cd ~/GameNewsMonitor && source venv/bin/activate && python run_daily.py >> logs/cron.log 2>&1") | crontab -
+(crontab -l 2>/dev/null; echo "0 8 * * * cd ~/GameNewsMonitor && . venv/bin/activate && python3 run_daily.py >> logs/cron.log 2>&1") | crontab -
 
 echo "Setup completed!"
