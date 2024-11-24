@@ -1,6 +1,7 @@
 import os
 import time
 import logging
+import asyncio
 from datetime import datetime
 import smtplib
 from email.mime.text import MIMEText
@@ -47,14 +48,14 @@ def send_email(subject, body, attachments=None):
     except Exception as e:
         logger.error(f"邮件发送失败: {str(e)}")
 
-def main():
+async def main():
     start_time = time.time()
     logger.info("开始执行每日爬取任务")
 
     # 执行爬虫
     try:
         import game_monitor
-        game_monitor.main()
+        await game_monitor.main()
     except Exception as e:
         logger.error(f"爬虫任务失败: {str(e)}")
     logger.info("爬虫任务完成")
@@ -85,4 +86,4 @@ def main():
     logger.info(f"所有任务完成，耗时: {duration:.2f}分钟")
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
