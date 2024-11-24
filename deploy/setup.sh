@@ -29,7 +29,7 @@ playwright install
 # 创建日志目录
 mkdir -p logs
 
-# 设置crontab
-(crontab -l 2>/dev/null; echo "0 2 * * * cd ~/GameNewsMonitor && source venv/bin/activate && python run_daily.py >> logs/cron.log 2>&1") | crontab -
+# 设置crontab（每天早上8点运行）
+(crontab -l 2>/dev/null; echo "0 8 * * * cd ~/GameNewsMonitor && source venv/bin/activate && python run_daily.py >> logs/cron.log 2>&1") | crontab -
 
 echo "Setup completed!"
