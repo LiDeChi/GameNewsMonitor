@@ -204,10 +204,12 @@ class GameMonitor:
         self.completed_sites = set()
         self.processed_urls = self._load_url_history()
         self.is_interrupted = False
+        self.force_quit = False
         self.search_engines = []
         
         # 设置信号处理
         signal.signal(signal.SIGINT, self._signal_handler)
+        signal.signal(signal.SIGTERM, self._signal_handler)
 
     def _load_sites(self) -> List[str]:
         """加载要监控的网站列表"""
@@ -494,9 +496,40 @@ class GameMonitor:
 
     def _signal_handler(self, signum, frame):
         """处理中断信号"""
-        logging.info("Received interrupt signal. Saving progress...")
-        self.is_interrupted = True
-        
+        if self.is_interrupted:  # 如果已经按过一次 Ctrl+C
+            logging.info("强制退出程序...")
+            self._force_cleanup()
+            os._exit(1)  # 强制退出
+        else:
+            logging.info("收到中断信号，正在保存进度...再次按 Ctrl+C 强制退出")
+            self.is_interrupted = True
+
+    def _force_cleanup(self):
+        """强制清理资源"""
+        try:
+            # 保存进度
+            self._save_progress()
+            self._save_url_history()
+            
+            # 关闭浏览器
+            if self.browser:
+                loop = asyncio.get_event_loop()
+                loop.run_until_complete(self.browser.close())
+                
+            # 关闭所有打开的文件
+            try:
+                for handler in logging.getLogger().handlers:
+                    handler.close()
+            except:
+                pass
+                
+        except Exception as e:
+            logging.error(f"清理资源时出错: {str(e)}")
+        finally:
+            # 确保所有输出都已刷新
+            sys.stdout.flush()
+            sys.stderr.flush()
+
     def _load_progress(self) -> None:
         """加载进度"""
         try:
