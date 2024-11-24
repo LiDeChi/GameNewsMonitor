@@ -74,3 +74,15 @@
 2024-11-24 17:44:35,213 - ERROR - Error processing 1001games.com: Timeout 30000ms exceeded.
 2024-11-24 17:44:41,350 - INFO - Results saved to game_news_20241124_173735.csv
 2024-11-24 17:44:56,485 - INFO - Waiting 100 seconds before next batch...
+2024-11-24 20:21:39,058 - INFO - Loaded progress: Starting from site 0
+2024-11-24 20:21:39,982 - INFO - Progress saved: Completed 0 sites
+2024-11-24 20:21:39,982 - INFO - All sites processed successfully!
+2024-11-24 20:21:39,983 - ERROR - Main program error: Executable doesn't exist at C:\Users\parsonjian\AppData\Local\ms-playwright\firefox-1425\firefox\firefox.exe
+¨X¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨[
+¨U Looks like Playwright was just installed or updated.       ¨U
+¨U Please run the following command to download new browsers: ¨U
+¨U                                                            ¨U
+¨U     playwright install                                     ¨U
+¨U                                                            ¨U
+¨U <3 Playwright Team                                         ¨U
+¨^¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨a
