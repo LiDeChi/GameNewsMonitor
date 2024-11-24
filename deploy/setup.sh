@@ -49,7 +49,10 @@ cd ~/GameNewsMonitor
 # 创建日志目录
 mkdir -p logs
 
-# 设置crontab（每天早上8点运行）
-(crontab -l 2>/dev/null; echo "0 8 * * * cd ~/GameNewsMonitor && $HOME/miniconda/envs/gamenews/bin/python run_daily.py >> logs/cron.log 2>&1") | crontab -
+# 清除所有现有的crontab任务
+crontab -r || true
+
+# 设置新的crontab（每天早上8点运行）
+(echo "0 8 * * * cd ~/GameNewsMonitor && $HOME/miniconda/envs/gamenews/bin/python run_daily.py >> logs/cron.log 2>&1") | crontab -
 
 echo "Setup completed!"
