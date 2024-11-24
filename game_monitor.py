@@ -199,85 +199,16 @@ class GameMonitor:
         self.context = None
         self.results_file = None
         self.progress_file = 'progress.json'
+        self.history_file = 'url_history.json'
         self.current_site_index = 0
         self.completed_sites = set()
+        self.processed_urls = self._load_url_history()
         self.is_interrupted = False
         self.search_engines = []
         
         # 设置信号处理
         signal.signal(signal.SIGINT, self._signal_handler)
 
-    async def _init_search_engines(self):
-        """初始化搜索引擎"""
-        self.search_engines = [
-            GoogleSearch(self.context),
-            BingSearch(self.context),
-            DirectSiteSearch(self.context)
-        ]
-
-    async def _init_browser(self):
-        """初始化浏览器"""
-        playwright = await async_playwright().start()
-        
-        # 尝试不同的浏览器启动配置
-        browser_configs = [
-            # 配置1：使用代理
-            {
-                'proxy': {
-                    'server': 'socks5://127.0.0.1:7890'
-                }
-            },
-            # 配置2：不使用代理
-            {},
-            # 配置3：使用其他代理设置
-            {
-                'proxy': {
-                    'server': 'http://127.0.0.1:8080'
-                }
-            }
-        ]
-        
-        for config in browser_configs:
-            try:
-                self.browser = await playwright.firefox.launch(
-                    headless=True,
-                    firefox_user_prefs={
-                        'general.useragent.override': UserAgent().random
-                    },
-                    **config
-                )
-                self.context = await self.browser.new_context(
-                    viewport={'width': 1920, 'height': 1080},
-                    user_agent=UserAgent().random
-                )
-                await self._init_search_engines()
-                return
-            except Exception as e:
-                logging.warning(f"Browser config failed: {str(e)}, trying next config...")
-                if self.browser:
-                    await self.browser.close()
-                    
-        raise Exception("All browser configurations failed")
-
-    async def search_new_pages(self, site: str, time_range: str) -> List[Dict]:
-        """使用多个搜索引擎尝试获取结果"""
-        for engine in self.search_engines:
-            try:
-                results = await engine.search(site, time_range)
-                if results:  # 如果获取到结果就返回
-                    logging.info(f"Successfully got results using {engine.__class__.__name__}")
-                    return results
-            except Exception as e:
-                logging.error(f"Error using {engine.__class__.__name__}: {str(e)}")
-                continue
-        
-        return []  # 如果所有搜索引擎都失败，返回空列表
-
-    def _signal_handler(self, signum, frame):
-        """处理中断信号"""
-        logging.info("Received interrupt signal. Saving progress...")
-        self.is_interrupted = True
-        
     def _load_sites(self) -> List[str]:
         """加载要监控的网站列表"""
         try:
@@ -287,31 +218,199 @@ class GameMonitor:
             logging.error("sites.txt not found")
             return []
             
-    def _load_progress(self) -> None:
-        """加载进度"""
+    def _load_url_history(self) -> set:
+        """加载已处理的URL历史记录"""
         try:
-            if Path(self.progress_file).exists():
-                with open(self.progress_file, 'r', encoding='utf-8') as f:
-                    progress = json.load(f)
-                    self.current_site_index = progress.get('last_site_index', 0)
-                    self.completed_sites = set(progress.get('completed_sites', []))
-                    logging.info(f"Loaded progress: Starting from site {self.current_site_index}")
+            if Path(self.history_file).exists():
+                with open(self.history_file, 'r', encoding='utf-8') as f:
+                    history = json.load(f)
+                    # 只保留最近7天的历史记录
+                    current_time = datetime.now()
+                    filtered_history = {
+                        url: timestamp for url, timestamp in history.items()
+                        if (current_time - datetime.fromisoformat(timestamp)).days <= 7
+                    }
+                    return set(filtered_history.keys())
+            return set()
         except Exception as e:
-            logging.error(f"Error loading progress: {str(e)}")
+            logging.warning(f"加载URL历史记录失败: {str(e)}")
+            return set()
+
+    def _save_url_history(self):
+        """保存已处理的URL历史记录"""
+        try:
+            current_time = datetime.now().isoformat()
+            history = {url: current_time for url in self.processed_urls}
+            with open(self.history_file, 'w', encoding='utf-8') as f:
+                json.dump(history, f, ensure_ascii=False, indent=4)
+        except Exception as e:
+            logging.error(f"保存URL历史记录失败: {str(e)}")
+
+    def _is_new_content(self, url: str, publish_time: Optional[str] = None) -> bool:
+        """判断是否为新内容"""
+        # 如果URL已经处理过，则不是新内容
+        if url in self.processed_urls:
+            return False
             
-    def _save_progress(self) -> None:
-        """保存进度"""
-        try:
-            progress = {
-                'last_site_index': self.current_site_index,
-                'last_update': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                'completed_sites': list(self.completed_sites)
+        # 如果提供了发布时间，检查是否在24小时内
+        if publish_time:
+            try:
+                pub_time = datetime.fromisoformat(publish_time)
+                time_diff = datetime.now() - pub_time
+                if time_diff.days > 1:  # 超过24小时
+                    return False
+            except Exception as e:
+                logging.warning(f"解析发布时间失败: {str(e)}")
+                
+        return True
+
+    async def _process_search_results(self, results: List[Dict], site: str) -> List[Dict]:
+        """处理搜索结果，过滤已处理的内容"""
+        new_results = []
+        for result in results:
+            url = result.get('url', '')
+            publish_time = result.get('publish_time')  # 如果搜索引擎或直接访问能获取到发布时间
+            
+            if self._is_new_content(url, publish_time):
+                result.update({
+                    'site': site,
+                    'found_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                })
+                new_results.append(result)
+                self.processed_urls.add(url)
+                
+        return new_results
+
+    async def search_new_pages(self, site: str, time_range: str) -> List[Dict]:
+        """使用多个搜索引擎尝试获取结果"""
+        all_results = []
+        success = False
+        
+        for engine in self.search_engines:
+            try:
+                results = await engine.search(site, time_range)
+                if results:
+                    # 过滤并处理新内容
+                    new_results = await self._process_search_results(results, site)
+                    all_results.extend(new_results)
+                    logging.info(f"从 {site} 使用 {engine.__class__.__name__} 获取到 {len(new_results)} 条新内容")
+                    success = True
+                    
+                    # 如果这个引擎成功了，继续尝试其他引擎以获取更多结果
+                    continue
+                    
+            except Exception as e:
+                logging.error(f"使用 {engine.__class__.__name__} 搜索 {site} 失败: {str(e)}")
+                continue
+                
+        if not success:
+            logging.warning(f"所有搜索引擎都未能从 {site} 获取到结果")
+            
+        # 对结果进行去重和排序
+        unique_results = self._deduplicate_results(all_results)
+        sorted_results = self._sort_results_by_time(unique_results)
+        
+        return sorted_results
+        
+    def _deduplicate_results(self, results: List[Dict]) -> List[Dict]:
+        """对结果进行去重"""
+        seen_urls = set()
+        unique_results = []
+        
+        for result in results:
+            url = result.get('url', '')
+            if url and url not in seen_urls:
+                seen_urls.add(url)
+                unique_results.append(result)
+                
+        return unique_results
+        
+    def _sort_results_by_time(self, results: List[Dict]) -> List[Dict]:
+        """按发布时间排序结果"""
+        def get_time(result):
+            try:
+                time_str = result.get('publish_time', '')
+                if time_str:
+                    return datetime.fromisoformat(time_str)
+                return datetime.min
+            except Exception:
+                return datetime.min
+                
+        return sorted(results, key=get_time, reverse=True)
+        
+    async def _init_browser(self):
+        """初始化浏览器"""
+        playwright = await async_playwright().start()
+        
+        # 浏览器配置选项
+        browser_configs = [
+            # 1. 无代理直连
+            {
+                'launch_type': 'firefox',
+                'proxy': None,
+                'args': ['--no-sandbox']
+            },
+            # 2. 使用系统代理
+            {
+                'launch_type': 'firefox',
+                'proxy': {
+                    'server': 'system'
+                },
+                'args': ['--no-sandbox']
+            },
+            # 3. 使用 chromium
+            {
+                'launch_type': 'chromium',
+                'proxy': None,
+                'args': ['--no-sandbox', '--disable-setuid-sandbox']
             }
-            with open(self.progress_file, 'w', encoding='utf-8') as f:
-                json.dump(progress, f, indent=4)
-            logging.info(f"Progress saved: Completed {len(self.completed_sites)} sites")
-        except Exception as e:
-            logging.error(f"Error saving progress: {str(e)}")
+        ]
+        
+        # 尝试不同的配置
+        last_error = None
+        for config in browser_configs:
+            try:
+                launch_args = {
+                    'headless': True,
+                    'args': config['args']
+                }
+                
+                if config['proxy']:
+                    launch_args['proxy'] = config['proxy']
+                
+                if config['launch_type'] == 'firefox':
+                    self.browser = await playwright.firefox.launch(**launch_args)
+                else:
+                    self.browser = await playwright.chromium.launch(**launch_args)
+                    
+                # 创建上下文并设置用户代理
+                self.context = await self.browser.new_context(
+                    user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36'
+                )
+                
+                # 测试连接
+                test_page = await self.context.new_page()
+                await test_page.goto('https://www.google.com', timeout=30000)
+                await test_page.close()
+                
+                logging.info(f"成功使用配置: {config['launch_type']}")
+                return
+                
+            except Exception as e:
+                last_error = e
+                logging.warning(f"配置 {config['launch_type']} 失败: {str(e)}")
+                if self.browser:
+                    await self.browser.close()
+                    
+        raise Exception(f"所有浏览器配置都失败。最后的错误: {str(last_error)}")
+
+    async def _init_search_engines(self):
+        """初始化搜索引擎"""
+        self.search_engines = [
+            DirectSiteSearch(self.context),  # 直接访问放在第一位
+            GoogleSearch(self.context),
+            BingSearch(self.context)
+        ]
 
     async def process_site_batch(self, sites: List[str]) -> None:
         """处理一批网站"""
@@ -338,7 +437,7 @@ class GameMonitor:
                 logging.error(f"Failed to process site {site}: {str(e)}")
                 continue
 
-    async def monitor_all_sites(self, batch_size: int = 2):
+    async def monitor_all_sites(self, batch_size=2):
         """监控所有网站"""
         try:
             # 加载之前的进度
@@ -376,6 +475,40 @@ class GameMonitor:
                 logging.info("Task interrupted. Progress saved. Run the script again to continue.")
             else:
                 logging.info("All sites processed successfully!")
+                
+            # 完成后保存URL历史
+            self._save_url_history()
+
+    def _signal_handler(self, signum, frame):
+        """处理中断信号"""
+        logging.info("Received interrupt signal. Saving progress...")
+        self.is_interrupted = True
+        
+    def _load_progress(self) -> None:
+        """加载进度"""
+        try:
+            if Path(self.progress_file).exists():
+                with open(self.progress_file, 'r', encoding='utf-8') as f:
+                    progress = json.load(f)
+                    self.current_site_index = progress.get('last_site_index', 0)
+                    self.completed_sites = set(progress.get('completed_sites', []))
+                    logging.info(f"Loaded progress: Starting from site {self.current_site_index}")
+        except Exception as e:
+            logging.error(f"Error loading progress: {str(e)}")
+            
+    def _save_progress(self) -> None:
+        """保存进度"""
+        try:
+            progress = {
+                'last_site_index': self.current_site_index,
+                'last_update': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'completed_sites': list(self.completed_sites)
+            }
+            with open(self.progress_file, 'w', encoding='utf-8') as f:
+                json.dump(progress, f, indent=4)
+            logging.info(f"Progress saved: Completed {len(self.completed_sites)} sites")
+        except Exception as e:
+            logging.error(f"Error saving progress: {str(e)}")
 
     def _save_results(self, results: List[Dict]) -> None:
         """保存结果到CSV文件"""
