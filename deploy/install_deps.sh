@@ -7,6 +7,7 @@ source ~/miniconda/bin/activate gamenews
 pip install tabulate
 
 # 安装 playwright 依赖
+pip install playwright
 playwright install-deps
 playwright install firefox
 
