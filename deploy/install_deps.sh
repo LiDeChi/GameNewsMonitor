@@ -13,4 +13,7 @@ playwright install firefox
 
 # 安装中文字体
 apt-get update
-apt-get install -y fonts-wqy-zenhei
+apt-get install -y \
+    fonts-wqy-zenhei \
+    fonts-wqy-microhei \
+    xfonts-wqy
