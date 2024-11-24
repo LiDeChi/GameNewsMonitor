@@ -50,3 +50,27 @@
 2024-11-24 14:36:12,551 - ERROR - Error processing gamejolt.com: 429 Client Error: Too Many Requests for url: https://www.google.com/sorry/index?continue=https://www.google.com/search%3Fq%3Dsite%253Agamejolt.com%26tbs%3Dqdr:d%26num%3D100&q=EgSsYKCuGNuSi7oGIjDOjQntkcNNCZxG4QBE9mOhqaM5qoEnWOP7FWd_-ppReLM5mDs2HomH-ir2i4YNDsYyAXJaAUM
 2024-11-24 14:36:14,042 - ERROR - Error processing gamejolt.com: 429 Client Error: Too Many Requests for url: https://www.google.com/sorry/index?continue=https://www.google.com/search%3Fq%3Dsite%253Agamejolt.com%26tbs%3Dqdr:w%26num%3D100&q=EgSsYKCuGN2Si7oGIjAhdL8SEJ7r_cIqxoRcCH-q8oLFam4YrDCwtqZdb_z0fGUI5kq7L2m8yAw3xHr9ZigyAXJaAUM
 2024-11-24 14:36:22,614 - INFO - Results saved to game_news_20241124_143622.csv
+2024-11-24 17:37:23,905 - INFO - Processing batch 1/11
+2024-11-24 17:37:23,905 - INFO - Monitoring site: 3dmgame.com
+2024-11-24 17:37:35,288 - INFO - Results saved to game_news_20241124_173735.csv
+2024-11-24 17:37:44,037 - INFO - Results saved to game_news_20241124_173735.csv
+2024-11-24 17:38:00,906 - INFO - Monitoring site: gamersky.com
+2024-11-24 17:38:08,447 - INFO - Results saved to game_news_20241124_173735.csv
+2024-11-24 17:38:15,872 - INFO - Results saved to game_news_20241124_173735.csv
+2024-11-24 17:38:34,202 - INFO - Waiting 120 seconds before next batch...
+2024-11-24 17:40:34,052 - INFO - Processing batch 2/11
+2024-11-24 17:40:34,053 - INFO - Monitoring site: taptap.com
+2024-11-24 17:40:40,157 - INFO - Results saved to game_news_20241124_173735.csv
+2024-11-24 17:40:48,312 - INFO - Results saved to game_news_20241124_173735.csv
+2024-11-24 17:41:00,914 - INFO - Monitoring site: gamespot.com
+2024-11-24 17:41:07,136 - INFO - Results saved to game_news_20241124_173735.csv
+2024-11-24 17:41:16,103 - INFO - Results saved to game_news_20241124_173735.csv
+2024-11-24 17:41:27,966 - INFO - Waiting 116 seconds before next batch...
+2024-11-24 17:43:24,155 - INFO - Processing batch 3/11
+2024-11-24 17:43:24,155 - INFO - Monitoring site: ign.com
+2024-11-24 17:43:32,979 - INFO - Results saved to game_news_20241124_173735.csv
+2024-11-24 17:43:40,351 - INFO - Results saved to game_news_20241124_173735.csv
+2024-11-24 17:44:00,026 - INFO - Monitoring site: 1001games.com
+2024-11-24 17:44:35,213 - ERROR - Error processing 1001games.com: Timeout 30000ms exceeded.
+2024-11-24 17:44:41,350 - INFO - Results saved to game_news_20241124_173735.csv
+2024-11-24 17:44:56,485 - INFO - Waiting 100 seconds before next batch...
