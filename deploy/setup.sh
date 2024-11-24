@@ -5,7 +5,7 @@ sudo apt update
 sudo apt upgrade -y
 
 # 安装Python和必要的工具
-sudo apt install -y python3.8 python3.8-venv python3.8-dev python3-pip git
+sudo apt install -y python3-full python3-pip python3-venv git
 
 # 创建项目目录
 mkdir -p ~/GameNewsMonitor
@@ -20,11 +20,14 @@ fi
 python3 -m venv venv
 source venv/bin/activate
 
+# 安装pip最新版本
+python3 -m pip install --upgrade pip
+
 # 安装项目依赖
-pip install -r requirements.txt
+pip install -r requirements.txt --break-system-packages
 
 # 安装playwright
-playwright install
+python3 -m playwright install --with-deps
 
 # 创建日志目录
 mkdir -p logs
