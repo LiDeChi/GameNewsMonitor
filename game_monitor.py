@@ -344,25 +344,36 @@ class GameMonitor:
         
         # 浏览器配置选项
         browser_configs = [
-            # 1. 无代理直连
-            {
-                'launch_type': 'firefox',
-                'proxy': None,
-                'args': ['--no-sandbox']
-            },
-            # 2. 使用系统代理
-            {
-                'launch_type': 'firefox',
-                'proxy': {
-                    'server': 'system'
-                },
-                'args': ['--no-sandbox']
-            },
-            # 3. 使用 chromium
+            # 1. 使用 Chromium（无代理）
             {
                 'launch_type': 'chromium',
                 'proxy': None,
-                'args': ['--no-sandbox', '--disable-setuid-sandbox']
+                'args': [
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox',
+                    '--disable-dev-shm-usage',
+                    '--disable-gpu',
+                    '--no-first-run',
+                    '--no-zygote',
+                    '--single-process'
+                ]
+            },
+            # 2. 使用 Chromium（系统代理）
+            {
+                'launch_type': 'chromium',
+                'proxy': {'server': 'system'},
+                'args': [
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox',
+                    '--disable-dev-shm-usage',
+                    '--disable-gpu'
+                ]
+            },
+            # 3. 使用 Firefox（备选）
+            {
+                'launch_type': 'firefox',
+                'proxy': None,
+                'args': ['--no-sandbox']
             }
         ]
         
@@ -378,22 +389,24 @@ class GameMonitor:
                 if config['proxy']:
                     launch_args['proxy'] = config['proxy']
                 
-                if config['launch_type'] == 'firefox':
-                    self.browser = await playwright.firefox.launch(**launch_args)
-                else:
+                if config['launch_type'] == 'chromium':
                     self.browser = await playwright.chromium.launch(**launch_args)
+                else:
+                    self.browser = await playwright.firefox.launch(**launch_args)
                     
                 # 创建上下文并设置用户代理
                 self.context = await self.browser.new_context(
-                    user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36'
+                    user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+                    viewport={'width': 1920, 'height': 1080}
                 )
                 
                 # 测试连接
-                test_page = await self.context.new_page()
-                await test_page.goto('https://www.google.com', timeout=30000)
-                await test_page.close()
+                page = await self.context.new_page()
+                await page.goto('https://www.google.com', timeout=30000)
+                await page.close()
                 
                 logging.info(f"成功使用配置: {config['launch_type']}")
+                await self._init_search_engines()
                 return
                 
             except Exception as e:
