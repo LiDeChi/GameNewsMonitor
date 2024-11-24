@@ -4,42 +4,41 @@
 sudo apt update
 sudo apt upgrade -y
 
-# 安装Python和必要的工具
-sudo apt install -y python3 python3-venv python3-pip python3-dev build-essential
+# 下载并安装Miniconda
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+bash miniconda.sh -b -p $HOME/miniconda
+rm miniconda.sh
+
+# 初始化conda
+$HOME/miniconda/bin/conda init bash
+source ~/.bashrc
+
+# 创建新的conda环境
+conda create -y -n gamenews python=3.10
+
+# 激活环境
+conda activate gamenews
+
+# 安装基本依赖
+conda install -y numpy pandas beautifulsoup4 matplotlib seaborn
+
+# 安装其他依赖
+pip install playwright
+pip install python-dotenv
+pip install requests
+pip install fake-useragent
+pip install jieba
+
+# 安装playwright浏览器
+playwright install chromium
 
 # 确保在正确的目录
 cd ~/GameNewsMonitor
-
-# 删除旧的虚拟环境（如果存在）
-rm -rf venv
-
-# 创建新的虚拟环境
-python3 -m venv venv
-
-# 激活虚拟环境
-. venv/bin/activate
-
-# 安装基本工具
-python3 -m pip install --upgrade pip
-python3 -m pip install setuptools wheel
-
-# 安装系统级依赖
-sudo apt install -y python3-numpy python3-pandas python3-bs4 python3-matplotlib python3-seaborn
-
-# 安装其他依赖
-pip install playwright --break-system-packages
-pip install python-dotenv --break-system-packages
-pip install requests --break-system-packages
-pip install fake-useragent --break-system-packages
-pip install jieba --break-system-packages
-
-# 安装playwright浏览器
-python3 -m playwright install chromium
 
 # 创建日志目录
 mkdir -p logs
 
 # 设置crontab（每天早上8点运行）
-(crontab -l 2>/dev/null; echo "0 8 * * * cd ~/GameNewsMonitor && . venv/bin/activate && python3 run_daily.py >> logs/cron.log 2>&1") | crontab -
+(crontab -l 2>/dev/null; echo "0 8 * * * cd ~/GameNewsMonitor && $HOME/miniconda/envs/gamenews/bin/python run_daily.py >> logs/cron.log 2>&1") | crontab -
 
 echo "Setup completed!"
