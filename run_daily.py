@@ -4,6 +4,7 @@ import logging
 import asyncio
 from datetime import datetime
 import smtplib
+import ssl
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
@@ -20,6 +21,7 @@ def send_email(subject, body, attachments=None):
     load_dotenv()
     
     smtp_server = os.getenv('SMTP_SERVER')
+    smtp_port = int(os.getenv('SMTP_PORT', '465'))
     sender_email = os.getenv('SENDER_EMAIL')
     sender_password = os.getenv('SENDER_PASSWORD')
     recipient_email = os.getenv('RECIPIENT_EMAIL')
@@ -40,11 +42,11 @@ def send_email(subject, body, attachments=None):
                     msg.attach(part)
 
     try:
-        server = smtplib.SMTP(smtp_server, 25)
-        server.login(sender_email, sender_password)
-        server.send_message(msg)
-        server.quit()
-        logger.info("邮件发送成功")
+        context = ssl.create_default_context()
+        with smtplib.SMTP_SSL(smtp_server, smtp_port, context=context) as server:
+            server.login(sender_email, sender_password)
+            server.send_message(msg)
+            logger.info("邮件发送成功")
     except Exception as e:
         logger.error(f"邮件发送失败: {str(e)}")
 
