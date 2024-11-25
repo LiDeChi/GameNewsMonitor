@@ -90,40 +90,62 @@ class ResultAnalyzer:
 
     def _generate_report(self, df):
         """生成分析报告"""
+        # 转换时间列
+        df['found_date'] = pd.to_datetime(df['found_date'])
+        
+        # 计算24小时内和一周内的新闻数量
+        now = pd.Timestamp.now()
+        news_24h = df[df['found_date'] > (now - pd.Timedelta(days=1))]
+        news_7d = df[df['found_date'] > (now - pd.Timedelta(days=7))]
+        
+        # 基本统计
         total_news = len(df)
         site_stats = df['site'].value_counts()
         
-        # 提取关键词
-        text = ' '.join(df['title'].fillna('') + ' ' + df['snippet'].fillna(''))
-        keywords = jieba.analyse.extract_tags(text, topK=10)
+        # 提取游戏名称（从标题中提取括号内的内容）
+        def extract_game_names(text):
+            import re
+            games = re.findall(r'[《\(（](.*?)[》\)）]', str(text))
+            return games
+            
+        all_games = []
+        for title in news_24h['title']:  # 只统计24小时内的游戏
+            games = extract_game_names(title)
+            all_games.extend(games)
+        
+        game_counts = Counter(all_games)
+        top_games = game_counts.most_common(10)
+        
+        # 提取关键词（只从24小时内的新闻提取）
+        text = ' '.join(news_24h['title'].fillna('') + ' ' + news_24h['snippet'].fillna(''))
+        keywords = jieba.analyse.extract_tags(text, topK=20, withWeight=True)
         
         # 生成 Markdown 报告
-        report = f"""# 游戏新闻监控分析报告
-生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+        report = f"""# 游戏新闻数据分析报告
 
-## 总体统计
-- 总新闻数量: {total_news}
-- 监控网站数量: {len(site_stats)}
+## 基本统计
+- 总条目数: {len(news_24h)}
+- 网站数量: {len(news_24h['site'].unique())}
+- 24小时内新闻: {len(news_24h)}
+- 一周内新闻: {len(news_7d)}
 
-## 网站分布
-{"".join([f'- {site}: {count}条新闻\\n' for site, count in site_stats.items()])}
+## 热门游戏 (Top 10)
+| 游戏名称 | 提及次数 |
+|---------|----------|
+{chr(10).join([f'| {game} | {count} |' for game, count in top_games])}
 
-## 热门关键词
-{"".join([f'- {keyword}\\n' for keyword in keywords])}
-
-## 详细分析图表
-1. 网站分布图 (site_distribution.png)
-2. 时间分布图 (time_distribution.png)
-3. 关键词分布图 (keyword_distribution.png)
+## 热门关键词 (Top 20)
+| 关键词 | 出现次数 |
+|--------|----------|
+{chr(10).join([f'| {word} | {int(count * 100)} |' for word, count in keywords])}
 """
         
         # 保存报告
         with open(self.output_dir / 'analysis_report.md', 'w', encoding='utf-8') as f:
             f.write(report)
             
-        # 同时保存一个 txt 版本作为备份
-        with open(self.output_dir / 'analysis_report.txt', 'w', encoding='utf-8') as f:
-            f.write(report)
+        # 保存24小时内的数据到CSV
+        news_24h.to_csv(self.output_dir / 'game_news.csv', index=False, encoding='utf-8')
 
 def main():
     # 获取最新的结果文件
