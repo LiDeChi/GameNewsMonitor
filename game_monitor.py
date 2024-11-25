@@ -13,6 +13,7 @@ import sys
 import requests
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
+import os
 
 # 配置日志
 logging.basicConfig(
@@ -513,9 +514,15 @@ class GameMonitor:
             
             # 关闭浏览器
             if self.browser:
-                loop = asyncio.get_event_loop()
-                loop.run_until_complete(self.browser.close())
-                
+                try:
+                    asyncio.get_event_loop().run_until_complete(self.browser.close())
+                except RuntimeError:
+                    # 如果事件循环已关闭，创建新的事件循环
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    loop.run_until_complete(self.browser.close())
+                    loop.close()
+            
             # 关闭所有打开的文件
             try:
                 for handler in logging.getLogger().handlers:
