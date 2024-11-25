@@ -40,3 +40,13 @@ progress.json
 
 # Playwright
 .playwright/
+authorized_keys
+id_rsa
+id_rsa.pub
+progress.json
+url_history.json
+.ssh/config
+progress.json
+url_history.json
+progress.json
+url_history.json
